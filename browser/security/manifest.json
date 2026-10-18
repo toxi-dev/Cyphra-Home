@@ -1,0 +1,53 @@
+{
+  "schema": 1,
+  "source": "https://firefox.settings.services.mozilla.com/v1/buckets/security-state/collections/onecrl",
+  "fetched": "2026-10-18T08:09:24Z",
+  "timestamp": 1792274405312,
+  "records": 1901,
+  "enabled": 1256,
+  "files": [
+    {
+      "name": "onecrl.json",
+      "bytes": 1055340,
+      "sha256": "3a3be9712222fff49c6024d469ca6b939854ee5d8aa9448bae1e4ac045272e37",
+      "url": "https://firefox.settings.services.mozilla.com/v1/buckets/security-state/collections/onecrl/records"
+    },
+    {
+      "name": "onecrl-metadata.json",
+      "bytes": 3321,
+      "sha256": "99b73b0c40d2ab422d2c831cf66b8a099044e78eb7bf80d02a67d61068ddbaef",
+      "url": "https://firefox.settings.services.mozilla.com/v1/buckets/security-state/collections/onecrl"
+    },
+    {
+      "name": "onecrl-chain.pem",
+      "bytes": 5279,
+      "sha256": "0b50b46b3052c490513fe309dfbaad203726399665de2a95c359c87acd1de308",
+      "url": "https://content-signature-2.cdn.mozilla.net/g/chains/202402/onecrl.content-signature.mozilla.org-2026-11-25-18-04-25.chain"
+    }
+  ],
+  "verification": {
+    "verified": true,
+    "verifier": "Cyphra pinned P-384 detached signature (Node WebCrypto)",
+    "signer": "onecrl.content-signature.mozilla.org",
+    "leafSPKISHA256": "71dc4a465bcc3895bd8b0fd25174407f1149938353d1fe96049b9a868758bb37",
+    "signerValidUntil": "2026-11-25T18:04:25.000Z",
+    "engine": "v22.23.3",
+    "records": 1901,
+    "enabled": 1256,
+    "timestamp": 1792274405312,
+    "verifiedAt": "2026-10-18T08:09:24Z",
+    "signerProductionQualification": {
+      "verifier": "Gecko nsIContentSignatureVerifier ContentSignatureProdRoot",
+      "verified": true,
+      "verifiedAt": "2026-10-18T12:25:43.777332+00:00",
+      "signer": "onecrl.content-signature.mozilla.org",
+      "leafSPKISHA256": "71dc4a465bcc3895bd8b0fd25174407f1149938353d1fe96049b9a868758bb37",
+      "signerValidUntil": "2026-11-25T18:04:25Z",
+      "engine": "158.0",
+      "applicationBuildID": "20261013185131",
+      "compiledToolkitBuildID": "20261013185131",
+      "records": 1901,
+      "timestamp": 1792274405312
+    }
+  }
+}

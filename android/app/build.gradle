@@ -1,0 +1,113 @@
+plugins { id 'com.android.application' }
+
+abstract class PrepareGeckoEngineOverlay extends Exec {
+    @org.gradle.api.tasks.OutputDirectory
+    abstract org.gradle.api.file.DirectoryProperty getOutputAssets()
+}
+
+def geckoEngineLock = new groovy.json.JsonSlurper().parse(rootProject.file('engine-lock.json'))
+configurations {
+    geckoEngineUpstream {
+        canBeConsumed = false
+        canBeResolved = true
+        transitive = false
+    }
+}
+def geckoOverlayAssets = layout.buildDirectory.dir('generated/geckoEngine/assets')
+def prepareGeckoEngineOverlay = tasks.register('prepareGeckoEngineOverlay', PrepareGeckoEngineOverlay) {
+    inputs.files(configurations.geckoEngineUpstream)
+    inputs.file(rootProject.file('engine-lock.json'))
+    inputs.file(rootProject.file('../scripts/patch-android-engine.py'))
+    inputs.files(rootProject.fileTree('engine-patches'))
+    outputAssets.set(geckoOverlayAssets)
+    workingDir rootProject.projectDir.parentFile
+    doFirst {
+        commandLine 'python3', rootProject.file('../scripts/patch-android-engine.py'),
+            'assemble', '--aar', configurations.geckoEngineUpstream.singleFile,
+            '--output-assets', outputAssets.get().asFile
+    }
+}
+
+android {
+    namespace 'org.cyphra.browser'
+    compileSdk {
+        version = release(37) { minorApiLevel = 2 }
+    }
+    buildToolsVersion '36.0.0'
+    defaultConfig {
+        applicationId 'org.cyphra.browser'
+        minSdk 29
+        targetSdk 36
+        versionCode providers.gradleProperty('cyphraVersionCode').getOrElse('4').toInteger()
+        versionName providers.gradleProperty('cyphraVersionName').getOrElse('0.1.2')
+        buildConfigField 'String', 'GECKOVIEW_OMNI_SHA256', '"' + geckoEngineLock.integration.patchedOmniSha256 + '"'
+        ndk { abiFilters 'arm64-v8a', 'armeabi-v7a', 'x86_64' }
+        testInstrumentationRunner 'org.cyphra.browser.ServicesSecurityTest'
+    }
+    buildFeatures { buildConfig true; resValues true }
+    testBuildType providers.gradleProperty('cyphraTestBuildType').getOrElse('debug')
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    flavorDimensions += 'edition'
+    productFlavors {
+        home {
+            dimension 'edition'
+            applicationId 'org.cyphra.browser.home'
+            resValue 'string', 'app_name', 'Cyphra Home'
+            buildConfigField 'boolean', 'TEAM', 'false'
+            buildConfigField 'boolean', 'HOME', 'true'
+            buildConfigField 'String', 'EDITION', '"home"'
+            buildConfigField 'String', 'DEFAULT_MODE', '"personal"'
+            buildConfigField 'String', 'DEFAULT_DNS', '"system"'
+            buildConfigField 'String', 'REPOSITORY', '"toxi-dev/Cyphra-Home"'
+            buildConfigField 'String', 'ASSET_PREFIX', '"Cyphra-Home"'
+            buildConfigField 'String', 'UPDATE_KEY_ID', '"cyphra-home-release-2026-01"'
+            buildConfigField 'String', 'UPDATE_KEY_SPKI', '"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAExUAU/CnYxSROwVVOHYaH/sI49xWxIAjJClutLif6QuPURibalRr1ddGOY1xD7df2kPGtZ3+6B/2dECupt3+u/A=="'
+        }
+    }
+    signingConfigs {
+        release {
+            if (System.getenv('CYPHRA_ANDROID_KEYSTORE')) {
+                storeFile file(System.getenv('CYPHRA_ANDROID_KEYSTORE'))
+                storePassword System.getenv('CYPHRA_ANDROID_STORE_PASSWORD')
+                keyAlias System.getenv('CYPHRA_ANDROID_KEY_ALIAS') ?: 'cyphra-android'
+                keyPassword System.getenv('CYPHRA_ANDROID_KEY_PASSWORD')
+            }
+        }
+    }
+    buildTypes {
+        release {
+            signingConfig signingConfigs.release
+            minifyEnabled false
+            debuggable false
+        }
+        debug { applicationIdSuffix '.debug' }
+    }
+    packaging {
+        jniLibs { useLegacyPackaging = true }
+        resources { excludes += ['META-INF/DEPENDENCIES'] }
+    }
+}
+dependencies {
+    geckoEngineUpstream geckoEngineLock.artifact
+    implementation(geckoEngineLock.artifact) {
+        exclude group: 'com.google.android.gms'
+    }
+    implementation 'androidx.annotation:annotation-experimental:1.6.0'
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.json:json:20260814'
+}
+
+// Only the test APK needs the installed variant's package for its two
+// process-specific lifecycle runners. Production manifests are unchanged.
+androidComponents {
+    onVariants(selector().all()) { variant ->
+        // Generated application assets take precedence over library assets.
+        // The Variant API carries the producer task dependency to asset merge.
+        // Verify actual packaged omni.ja before sealing any APK.
+        variant.sources.assets.addGeneratedSourceDirectory(prepareGeckoEngineOverlay) { task -> task.outputAssets }
+        variant.androidTest?.manifestPlaceholders?.put('lifecycleTargetPackage', variant.applicationId)
+    }
+}

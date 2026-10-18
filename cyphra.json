@@ -1,0 +1,9 @@
+{
+  "name": "Cyphra",
+  "team": "",
+  "version": "0.7.3",
+  "engine": "Gecko",
+  "upstream": "LibreWolf 158.0-1",
+  "edition": "home",
+  "repository": "toxi-dev/Cyphra-Home"
+}
